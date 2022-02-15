@@ -1,0 +1,17 @@
+﻿{
+  "@id": "dtmi:test:TestBase;1",
+  "@type": "Interface",
+  "displayName": "TestBase",
+  "description": "This is a root class for properties common for all test models.",
+  "comment": "Just for test purposes.",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "createdBy",
+      "comment": "An ID for who will get the blame when something goes wrong.",
+      "schema": "string",
+      "writable": true
+    }
+  ],
+  "@context": "dtmi:dtdl:context;2"
+}

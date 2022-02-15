@@ -1,0 +1,19 @@
+{
+  "@id": "dtmi:test:TestContactInfo;1",
+  "@type": "Interface",
+  "displayName": "TestContactInfo",
+  "description": "Representing some properties for someones contact information.",
+  "comment": "For testing this as a component within a Person model.",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "email",
+      "schema": "string",
+      "writable": true
+    }
+  ],
+  "@context": "dtmi:dtdl:context;2",
+  "extends": [
+    "dtmi:test:TestBase;1"
+  ]
+}

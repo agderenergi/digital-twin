@@ -1,0 +1,123 @@
+{
+  "@id": "dtmi:test:TestPerson;1",
+  "@type": "Interface",
+  "displayName": "TestPerson",
+  "description": "Representing a person, with name, contact info, etc.",
+  "comment": "Should contain all types of properties, to see that serialization/deserialization works.",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "name",
+      "schema": "string",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "hasDriversLicence",
+      "schema": "boolean",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "birthDate",
+      "schema": "dateTime",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "carCount",
+      "schema": "integer",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "highScore",
+      "schema": "double",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "timeSpentLookingAtCatVideos",
+      "schema": "duration",
+      "writable": true
+    },
+    {
+      "@type": ["Property", "Distance"],
+      "name": "height",
+      "unit": "centimetre",
+      "schema": "double",
+      "description": "An semantic type with a defined unit. See https://github.com/Azure/opendigitaltwins-dtdl/blob/master/DTDL/v2/dtdlv2.md#semantic-types",
+      "writable": true
+    },
+    {
+      "@type": "Property",
+      "name": "gender",
+      "description": "this is one of the possible complex types",
+      "writable": true,
+      "schema": {
+        "@type": "Enum",
+        "valueSchema": "string",
+        "enumValues": [
+          {
+            "name": "female",
+            "displayName": "Female",
+            "enumValue": "Female"
+          },
+          {
+            "name": "male",
+            "displayName": "Male",
+            "enumValue": "Male"
+          },
+          {
+            "name": "nonBinary",
+            "displayName": "Non-binary",
+            "enumValue": "NonBinary"
+          }
+        ]
+      }
+    },
+    {
+      "@type": "Property",
+      "name": "geoLocation",
+      "description": "this is one of the possible complex types",
+      "schema": {
+        "@type": "Object",
+        "fields": [
+          {
+            "name": "latitude",
+            "schema": "double"
+          },
+          {
+            "name": "longitude",
+            "schema": "double"
+          }
+        ]
+      }
+    },
+    {
+      "@type": "Component",
+      "name": "contactInfo",
+      "description":"This tests using one model as part of another",
+      "schema": "dtmi:test:TestContactInfo;1"
+    },
+    {
+      "@type": "Relationship",
+      "@id": "dtmi:test:rel_isFriendOf;1",
+      "name": "isFriendOf",
+      "target": "dtmi:test:TestPerson;1",
+      "comment": "@id will be generated if not defined. Leaving out target means this relationship can connect to any type of twin.",
+      "displayName": "Is Friend of",
+      "properties": [
+        {
+          "@type": "Property",
+          "name": "comment",
+          "schema": "string"
+        }
+      ]
+    }
+  ],
+  "@context": "dtmi:dtdl:context;2",
+  "extends": [
+    "dtmi:test:TestBase;1"
+  ]
+}
