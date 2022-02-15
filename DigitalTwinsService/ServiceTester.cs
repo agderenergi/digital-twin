@@ -27,13 +27,13 @@ namespace DigitalTwinsService
         {
             var testPerson1 = new TestPerson
             {
-                Id = "Test_" + Guid.NewGuid(),
+                Id = "Test_6740cde7-961a-4e19-b914-be6cdd9450ea",
                 Name = "Test1",
                 Gender = Gender.Female,
-                Height = 1.74,
+                Height = 177,
                 BirthDate = DateTimeOffset.Now.AddYears(-25),
                 CarCount = 1,
-                ContactInfo = new TestContactInfo { Id = "Test_" + Guid.NewGuid(), Email = "SomeEmail", CreatedBy = "SomeoneElse"},
+                ContactInfo = new TestContactInfo { Email = "SomeEmail", CreatedBy = "SomeoneElse"},
                 CreatedBy = "Someone",
                 GeoLocation = new GeoLocation { Latitude = 51.1, Longitude = -0.5 },
                 HighScore = 0,
@@ -43,18 +43,17 @@ namespace DigitalTwinsService
 
             var testPerson2 = new TestPerson
             {
-                Id = "Test_" + Guid.NewGuid(),
+                Id = "Test_693e3e41-d2db-45b4-91ad-2c4cbebe81bf",
                 Name = "Test2",
                 Gender = Gender.Male,
-                Height = 1.74,
-                BirthDate = DateTimeOffset.Now.AddYears(-25),
-                CarCount = 1,
-                ContactInfo = new TestContactInfo
-                    { Id = "Test_" + Guid.NewGuid(), Email = "SomeEmail", CreatedBy = "SomeoneElse" },
-                CreatedBy = "Someone",
-                GeoLocation = new GeoLocation { Latitude = 51.1, Longitude = -0.5 },
+                Height = 174,
+                BirthDate = DateTimeOffset.Now.AddYears(-45),
+                CarCount = 3,
+                // A sub component like ContactInfo cannot be null, but a "blank" instance is created in the TestPerson constructor
+                CreatedBy = null,
+                GeoLocation = null,
                 HighScore = 0,
-                HasDriversLicence = true,
+                HasDriversLicence = false,
                 TimeSpentLookingAtCatVideos = new TimeSpan(14, 2, 15),
                 Friendships = new List<DTRelationship>
                 {

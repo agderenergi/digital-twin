@@ -238,16 +238,18 @@ namespace DigitalTwinsService
             foreach (var propInfo in propInfos)
             {
                 var dtPropertyAttribute = propInfo.GetCustomAttribute(typeof(DTModelContentAttribute), true) as DTModelContentAttribute;
-                var value = propInfo.GetValue(csObject);
+                if (dtPropertyAttribute == null)
+                    continue;
                 
+                var value = propInfo.GetValue(csObject);
                 if (value == null)
                 {
-                    if (propInfo.PropertyType.IsValueType)
-                        value = Activator.CreateInstance(propInfo.PropertyType);
-                    else if (propInfo.PropertyType == typeof(string))
-                        value = "";
+                    if (dtPropertyAttribute.ContentType == ContentType.Component)
+                        throw new DigitalTwinsException($"Subcomponent {propInfo.Name} cannot be null.");
+                    
+                    continue;
                 }
-
+                
                 if (propInfo.PropertyType.IsEnum)
                     value = value?.ToString();
                 
