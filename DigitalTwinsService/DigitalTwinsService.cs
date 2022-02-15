@@ -47,6 +47,11 @@ namespace DigitalTwinsService
         #endregion
         
         #region Model Management
+        /// <summary>
+        /// This will read the contents of the DTDL json file paths, then validate the contents.
+        /// Models already uploaded will be skipped, new ones will be uploaded. To update existing models
+        /// either first delete the old or update the version number in the model Id.
+        /// </summary>
         public async Task UploadModels(List<string> modelFilenames)
         {
             var models = new List<string>();
@@ -92,6 +97,10 @@ namespace DigitalTwinsService
             }
         }
 
+        /// <summary>
+        /// The list of models will first be checked for valid JSON formatting, then that they contain valid DTDL.
+        /// If models have sub components or extend other models, all relevant models must be included.
+        /// </summary>
         public async Task<string> ValidateModels(List<string> models)
         {
             foreach (var model in models)
@@ -135,6 +144,11 @@ namespace DigitalTwinsService
             return null;
         }
         
+        /// <summary>
+        /// Returns a model matching the given model ID. If the Id
+        /// is not a properly formatted DTDL Id or the model (including the version number)
+        /// does not exist, a DigitalTwinsException will be thrown
+        /// </summary>
         public async Task<DigitalTwinsModelData> GetModelById(string id)
         {
             try
@@ -148,6 +162,9 @@ namespace DigitalTwinsService
             }
         }
         
+        /// <summary>
+        /// Returns all models currently stored on this digital twins instance.
+        /// </summary>
         public async Task<List<DigitalTwinsModelData>> GetAllModels()
         {
             var models = new List<DigitalTwinsModelData>();
@@ -163,6 +180,38 @@ namespace DigitalTwinsService
             }
         
             return models;
+        }
+
+        /// <summary>
+        /// A decommissioned model can not be used to create new digital twins, but does not affect existing twins using that model.
+        /// </summary>
+        public async Task DecomissionModel(string modelId)
+        {
+            try
+            {
+                await _adtClient.DecommissionModelAsync(modelId);
+            }
+            catch (RequestFailedException rex)
+            {
+                throw new DigitalTwinsException($"DecomissionModel for model Id {modelId} failed: {rex.Status}:{rex.Message}", rex.InnerException);
+            }
+        }
+
+        /// <summary>
+        /// A model must be deleted before an updated DTDL file with same version number can be uploaded. Deleting a model
+        /// will not delete existing twins, but they are now considered orphaned. Such twins can still be read, but properties can not
+        /// be updated. Orphaned twins can still be queried by their "old" model Id.
+        /// </summary>
+        public async Task DeleteModel(string modelId)
+        {
+            try
+            {
+                await _adtClient.DeleteModelAsync(modelId);
+            }
+            catch (RequestFailedException rex)
+            {
+                throw new DigitalTwinsException($"DeleteModel with model Id {modelId} failed: {rex.Status}:{rex.Message}", rex.InnerException);
+            }
         }
 
         private async Task<bool> CheckIfModelExists(string model) =>
@@ -183,6 +232,11 @@ namespace DigitalTwinsService
         #endregion
         
         #region Twin Management
+        /// <summary>
+        /// This will Upsert a twin described as a BasicDigitalTwin helper Class. For a suggestion on how to convert
+        /// a C# class to a Basic Digital Twin, see the ConvertToTwin() method in the Helper Methods section below
+        /// and the DTModel/DTModelContent custom attributes.
+        /// </summary>
         public async Task<BasicDigitalTwin> CreateOrReplaceTwin(BasicDigitalTwin twin)
         {
             try
@@ -196,6 +250,10 @@ namespace DigitalTwinsService
             }
         }
 
+        /// <summary>
+        /// Upserts a Relationship between two twins that already exists via a DTRelationship base class. Optional attributes
+        /// for the relationship is supported (see "TestFriendshipRelationship.cs" for an example).
+        /// </summary>
         public async Task<BasicRelationship> CreateOrReplaceRelationship(string sourceId, DTRelationship dtRelationship)
         {
             try
@@ -213,6 +271,11 @@ namespace DigitalTwinsService
         #endregion
         
         #region Helper Methods
+        /// <summary>
+        /// This utility method converts any instance of a C# class decorated with the DTModel/DTModelContent attributes to a
+        /// BasicDigitalTwin helper class that can be inserted/updated. See "TestPerson.cs" and its related classes for
+        /// an example.
+        /// </summary>
         public static BasicDigitalTwin ConvertToTwin<T>(string twinId, T csObject)
         {
             var modelAttribute = csObject.GetType().GetCustomAttribute(typeof(DTModelAttribute), false) as DTModelAttribute;
