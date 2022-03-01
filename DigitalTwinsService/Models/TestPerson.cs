@@ -52,8 +52,8 @@ namespace DigitalTwinsService.Models
         [DTModelContent("contactInfo", ContentType.Component)]
         public TestContactInfo ContactInfo { get; set; }
         
-        [DTModelContent("knows", ContentType.Relationship)]
-        public List<DTRelationship> Friendships { get; set; }
+        [DTModelContent("isFriendOf", ContentType.Relationship)]
+        public List<TestFriendshipRelationship> Friendships { get; set; }
 
         public TestPerson()
         {

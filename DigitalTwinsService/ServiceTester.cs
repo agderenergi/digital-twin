@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Azure.DigitalTwins.Core;
 using DigitalTwinsService.Models;
 
 namespace DigitalTwinsService
@@ -55,9 +56,9 @@ namespace DigitalTwinsService
                 HighScore = 0,
                 HasDriversLicence = false,
                 TimeSpentLookingAtCatVideos = new TimeSpan(14, 2, 15),
-                Friendships = new List<DTRelationship>
+                Friendships = new List<TestFriendshipRelationship>
                 {
-                    new TestFriendshipRelationship
+                    new TestFriendshipRelationship("isFriendOf")
                     {
                         TargetId = testPerson1.Id,
                         Comment = "Old classmate"
@@ -73,5 +74,14 @@ namespace DigitalTwinsService
 
             var relationship = await _dtService.CreateOrReplaceRelationship(testPerson2.Id, testPerson2.Friendships[0]);
         }
+
+        /// <summary>
+        /// Returns a twin represented as a BasicDigitalTwin
+        /// </summary>
+        public async Task<BasicDigitalTwin> GetTwin(string twinId) =>
+            await _dtService.GetTwin(twinId);
+
+        public async Task<TestPerson> GetNode<T>(string twinId) =>
+            await _dtService.GetCsObject<TestPerson>(twinId);
     }
 }

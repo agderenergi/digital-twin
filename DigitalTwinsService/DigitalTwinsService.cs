@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 using Azure;
 using Azure.DigitalTwins.Core;
 using Azure.Identity;
+using DigitalTwinsService.Models;
 using Microsoft.Azure.DigitalTwins.Parser;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace DigitalTwinsService
 {
@@ -268,6 +270,47 @@ namespace DigitalTwinsService
                 throw new DigitalTwinsException($"CreateOrReplaceRelation error: {rex.Status}:{rex.Message}", rex);
             }            
         }
+
+        public async Task<BasicDigitalTwin> GetTwin(string twinId)
+        {
+            try
+            {
+                var result = await _adtClient.GetDigitalTwinAsync<BasicDigitalTwin>(twinId);
+                return result.Value;
+            }
+            catch (Exception e)
+            {
+                throw new DigitalTwinsException($"GetTwin with Id {twinId} failed.", e);
+            }
+        }
+
+        private async Task<List<BasicRelationship>> GetOutgoingRelationships(string twinId)
+        {
+            var relationships = new List<BasicRelationship>();
+            try
+            {
+                var results = _adtClient.GetRelationshipsAsync<BasicRelationship>(twinId);
+                await foreach (var rel in results)
+                {
+                    relationships.Add(rel);
+                }
+            }
+            catch (RequestFailedException rex)
+            {
+                throw new DigitalTwinsException($"Relationship retrieval error: {rex.Status}:{rex.Message}", rex);
+            }
+
+            return relationships;
+        }
+        
+        public async Task<T> GetCsObject<T>(string twinId) where T : new()
+        {
+            var basicTwin = await GetTwin(twinId);
+            var outgoingRelationships = await GetOutgoingRelationships(twinId);
+            
+            return ConvertFromTwin<T>(basicTwin, outgoingRelationships);
+        }
+        
         #endregion
         
         #region Helper Methods
@@ -292,6 +335,77 @@ namespace DigitalTwinsService
             };
             
             return twin;
+        }
+        
+        public T ConvertFromTwin<T>(BasicDigitalTwin twin, List<BasicRelationship> relationships) where T : new()
+        {
+            var modelAttribute = typeof(T).GetCustomAttribute(typeof(DTModelAttribute), false) as DTModelAttribute;
+            if (modelAttribute == null || string.IsNullOrEmpty(modelAttribute.ModelId))
+                throw new Exception($"DTModelAttribute not set on {typeof(T).Name}");
+
+            var csObject = ParseTwinContents<T>(twin.Contents, relationships);
+    
+            return csObject;
+        }
+
+        private T ParseTwinContents<T>(IDictionary<string, object> twinContents, List<BasicRelationship> relationships) where T : new() =>
+            (T)ParseTwinContents_Recursive(typeof(T), twinContents, relationships);
+
+        private object ParseTwinContents_Recursive(Type type, IDictionary<string, object> twinContents,
+            List<BasicRelationship> relationships)
+        {
+            var csObject = Activator.CreateInstance(type);
+            var propInfos = csObject.GetType().GetProperties();
+            foreach (var propInfo in propInfos)
+            {
+                var dtPropertyAttribute =
+                    propInfo.GetCustomAttribute(typeof(DTModelContentAttribute), true) as DTModelContentAttribute;
+                if (dtPropertyAttribute == null)
+                    continue;
+                
+                if (dtPropertyAttribute.ContentType == ContentType.Relationship)
+                {
+                    if (propInfo.GetValue(csObject) == null)
+                        propInfo.SetValue(csObject, Activator.CreateInstance(propInfo.PropertyType));
+                    if (relationships == null ||
+                        !relationships.Any(rel => rel.Name.Equals(dtPropertyAttribute.ContentName)))
+                        continue;
+                    
+                    foreach (var rel in relationships.Where(rel => rel.Name.Equals(dtPropertyAttribute.ContentName)))
+                    {
+                        var dtRelationship = Activator.CreateInstance(propInfo.PropertyType.GenericTypeArguments[0],
+                            rel);
+                        var methodInfo = propInfo.PropertyType.GetMethod("Add");
+                        methodInfo.Invoke(propInfo.GetValue(csObject), new[] {dtRelationship});
+                    }
+                    continue;
+                }
+                
+                if (!twinContents.ContainsKey(dtPropertyAttribute.ContentName))
+                    continue;
+
+                object twinValue;
+                if (dtPropertyAttribute.ContentType == ContentType.Object || dtPropertyAttribute.ContentType == ContentType.Component)
+                {
+                    var subContent =
+                        (Dictionary<string, object>)((JsonElement)twinContents[dtPropertyAttribute.ContentName])
+                        .Deserialize(
+                            typeof(IDictionary<string, object>));
+                    twinValue = ParseTwinContents_Recursive(propInfo.PropertyType, subContent, relationships);
+                    propInfo.SetValue(csObject, twinValue);
+                    continue;
+                }
+
+                
+                var jsonElement = (JsonElement)twinContents[dtPropertyAttribute.ContentName];
+                twinValue = propInfo.PropertyType.IsEnum
+                    ? Enum.Parse(propInfo.PropertyType, jsonElement.ToString())
+                    : jsonElement.Deserialize(propInfo.PropertyType);
+                
+                propInfo.SetValue(csObject, twinValue);
+            }
+
+            return csObject;
         }
         
         private static Dictionary<string, object> CreateTwinContents_Recursive<T>(T csObject)
