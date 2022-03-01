@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Azure.DigitalTwins.Core;
 using DigitalTwinsService.Models;
@@ -34,7 +35,7 @@ namespace DigitalTwinsService
                 Height = 177,
                 BirthDate = DateTimeOffset.Now.AddYears(-25),
                 CarCount = 1,
-                ContactInfo = new TestContactInfo { Email = "SomeEmail", CreatedBy = "SomeoneElse"},
+                ContactInfo = new TestContactInfo { Email = "SomeEmail"},
                 CreatedBy = "Someone",
                 GeoLocation = new GeoLocation { Latitude = 51.1, Longitude = -0.5 },
                 HighScore = 0,
@@ -81,7 +82,13 @@ namespace DigitalTwinsService
         public async Task<BasicDigitalTwin> GetTwin(string twinId) =>
             await _dtService.GetTwin(twinId);
 
-        public async Task<TestPerson> GetNode<T>(string twinId) =>
+        /// <summary>
+        /// Returns a twin and its outgoing relationships parsed to a TestPerson C# Class
+        /// </summary>
+        public async Task<TestPerson> GetTestPerson(string twinId) =>
             await _dtService.GetCsObject<TestPerson>(twinId);
+
+        public async Task<IEnumerable<TestPerson>> GetAllTestPersons() =>
+            await _dtService.GetAllCsObjects<TestPerson>();
     }
 }

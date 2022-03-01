@@ -6,7 +6,8 @@ namespace DigitalTwinsService
         Property,
         Component,
         Object,
-        Relationship
+        Relationship,
+        Id
     }
     
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]

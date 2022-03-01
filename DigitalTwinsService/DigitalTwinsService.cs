@@ -284,6 +284,26 @@ namespace DigitalTwinsService
             }
         }
 
+        public async Task<List<BasicDigitalTwin>> GetAllTwinsOfModelType(string modelId)
+        {
+            var twins = new List<BasicDigitalTwin>();
+
+            try
+            {
+                var result =
+                    _adtClient.QueryAsync<BasicDigitalTwin>(
+                        $"SELECT * FROM digitaltwins WHERE IS_OF_MODEL('{modelId}')");
+                await foreach (var twin in result)
+                    twins.Add(twin);
+            }
+            catch (Exception e)
+            {
+                throw new DigitalTwinsException("Digital twins query failed.", e);
+            }
+
+            return twins;
+        }
+
         private async Task<List<BasicRelationship>> GetOutgoingRelationships(string twinId)
         {
             var relationships = new List<BasicRelationship>();
@@ -309,6 +329,24 @@ namespace DigitalTwinsService
             var outgoingRelationships = await GetOutgoingRelationships(twinId);
             
             return ConvertFromTwin<T>(basicTwin, outgoingRelationships);
+        }
+
+        public async Task<IEnumerable<T>> GetAllCsObjects<T>() where T : new()
+        {
+            var modelAttribute = (DTModelAttribute)typeof(T).GetCustomAttribute(typeof(DTModelAttribute));
+            if (modelAttribute == null)
+                throw new ArgumentException($"Generic type {typeof(T).Name} does not have a DTModelAttribute.");
+            
+            var twins = await GetAllTwinsOfModelType(modelAttribute.ModelId);
+
+            var csObjects = new List<T>();
+            foreach (var twin in twins)
+            {
+                var rels = await GetOutgoingRelationships(twin.Id);
+                csObjects.Add(ConvertFromTwin<T>(twin, rels));
+            }
+
+            return csObjects;
         }
         
         #endregion
@@ -344,6 +382,13 @@ namespace DigitalTwinsService
                 throw new Exception($"DTModelAttribute not set on {typeof(T).Name}");
 
             var csObject = ParseTwinContents<T>(twin.Contents, relationships);
+            var idPropInfo =
+                typeof(T).GetProperties()
+                    .SingleOrDefault(prop =>
+                        ((DTModelContentAttribute)prop.GetCustomAttribute(typeof(DTModelContentAttribute)))?
+                        .ContentType == ContentType.Id);
+            if (idPropInfo != null)
+                idPropInfo.SetValue(csObject, twin.Id);
     
             return csObject;
         }
@@ -360,7 +405,7 @@ namespace DigitalTwinsService
             {
                 var dtPropertyAttribute =
                     propInfo.GetCustomAttribute(typeof(DTModelContentAttribute), true) as DTModelContentAttribute;
-                if (dtPropertyAttribute == null)
+                if (dtPropertyAttribute == null || dtPropertyAttribute.ContentType == ContentType.Id)
                     continue;
                 
                 if (dtPropertyAttribute.ContentType == ContentType.Relationship)

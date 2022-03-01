@@ -12,8 +12,5 @@
       "writable": true
     }
   ],
-  "@context": "dtmi:dtdl:context;2",
-  "extends": [
-    "dtmi:test:TestBase;1"
-  ]
+  "@context": "dtmi:dtdl:context;2"
 }

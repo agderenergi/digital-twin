@@ -14,11 +14,8 @@ namespace DigitalTwinsService
 
             await tester.UploadADTModels();
             await tester.CreateTestTwins();
-            var basicTwin = await tester.GetTwin("Test_6740cde7-961a-4e19-b914-be6cdd9450ea");
-            var node = await tester.GetNode<TestPerson>("Test_6740cde7-961a-4e19-b914-be6cdd9450ea");
-            
-            var basicTwin2 = await tester.GetTwin("Test_693e3e41-d2db-45b4-91ad-2c4cbebe81bf");
-            var node2 = await tester.GetNode<TestPerson>("Test_693e3e41-d2db-45b4-91ad-2c4cbebe81bf");
+
+            var testPersons = await tester.GetAllTestPersons();
         }
         
         private static ServiceProvider BuildServiceProvider() =>
