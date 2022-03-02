@@ -90,5 +90,20 @@ namespace DigitalTwinsService
 
         public async Task<IEnumerable<TestPerson>> GetAllTestPersons() =>
             await _dtService.GetAllCsObjects<TestPerson>();
+
+        public async Task DeleteTestTwins(List<TestPerson> testPersons)
+        {
+            foreach (var testPerson in testPersons)
+            {
+                foreach (var friendship in testPerson.Friendships)
+                {
+                    await _dtService.DeleteRelationship(testPerson.Id,
+                        friendship.GetRelationshipId(testPerson.Id));
+                }
+            }
+
+            foreach (var testPerson in testPersons)
+                await _dtService.DeleteTwin(testPerson.Id);
+        }
     }
 }

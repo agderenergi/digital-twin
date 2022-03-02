@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using DigitalTwinsService.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ namespace DigitalTwinsService
             await tester.CreateTestTwins();
 
             var testPersons = await tester.GetAllTestPersons();
+            await tester.DeleteTestTwins(testPersons.ToList());
         }
         
         private static ServiceProvider BuildServiceProvider() =>

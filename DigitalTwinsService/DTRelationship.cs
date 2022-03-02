@@ -40,7 +40,10 @@ namespace DigitalTwinsService
         }
         
         public string RelationshipName { get; set; }
-        
+
+        public string GetRelationshipId(string sourceId) =>
+            $"{sourceId}-{RelationshipName}->{TargetId}";
+
         public string TargetId { get; set; }
         
         public BasicRelationship ToBasicRelationship(string sourceId) => 

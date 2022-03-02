@@ -8,11 +8,9 @@ using System.Threading.Tasks;
 using Azure;
 using Azure.DigitalTwins.Core;
 using Azure.Identity;
-using DigitalTwinsService.Models;
 using Microsoft.Azure.DigitalTwins.Parser;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace DigitalTwinsService
 {
@@ -260,7 +258,7 @@ namespace DigitalTwinsService
         {
             try
             {
-                var relId = $"{sourceId}-{dtRelationship.RelationshipName}->{dtRelationship.TargetId}";
+                var relId = dtRelationship.GetRelationshipId(sourceId);
                 var response = await _adtClient.CreateOrReplaceRelationshipAsync(sourceId, relId,
                     dtRelationship.ToBasicRelationship(sourceId));
                 return response.Value;
@@ -271,6 +269,25 @@ namespace DigitalTwinsService
             }            
         }
 
+        /// <summary>
+        /// Deletes an outgoing relationship given a sourceId and the id of the relationship
+        /// </summary>
+        public async Task DeleteRelationship(string sourceTwinId, string relationshipId)
+        {
+            try
+            {
+                await _adtClient.DeleteRelationshipAsync(sourceTwinId, relationshipId);
+            }
+            catch (Exception e)
+            {
+                throw new DigitalTwinsException(
+                    $"Deleting relationship for twin {sourceTwinId} and relationshipId {relationshipId} failed.", e);
+            }
+        }
+
+        /// <summary>
+        /// Gets a single twin instance as a BasicDigitalTwin helper class by its $dtId
+        /// </summary>
         public async Task<BasicDigitalTwin> GetTwin(string twinId)
         {
             try
@@ -284,6 +301,23 @@ namespace DigitalTwinsService
             }
         }
 
+        public async Task DeleteTwin(string twinId)
+        {
+            try
+            {
+                await _adtClient.DeleteDigitalTwinAsync(twinId);
+            }
+            catch (Exception e)
+            {
+                throw new DigitalTwinsException(
+                    $"Deleting twin {twinId} failed.", e);
+            }
+        }
+
+        /// <summary>
+        /// Returns all twin instances for a specific model type and version id as a BasicDigitalTwin. Note that this will not
+        /// include any relationships.
+        /// </summary>
         public async Task<List<BasicDigitalTwin>> GetAllTwinsOfModelType(string modelId)
         {
             var twins = new List<BasicDigitalTwin>();
@@ -304,7 +338,10 @@ namespace DigitalTwinsService
             return twins;
         }
 
-        private async Task<List<BasicRelationship>> GetOutgoingRelationships(string twinId)
+        /// <summary>
+        /// Returns all outgoing relationships for a twin instance (i.e. relationships with the given twin id as 'SourceId')
+        /// </summary>
+        public async Task<List<BasicRelationship>> GetOutgoingRelationships(string twinId)
         {
             var relationships = new List<BasicRelationship>();
             try
@@ -323,6 +360,10 @@ namespace DigitalTwinsService
             return relationships;
         }
         
+        /// <summary>
+        /// Gets a twin instance with a given $dtId and parses it to a given C# Class with DTModel/DTModelContent attributes.
+        /// Outgoing relationships are included.
+        /// </summary>
         public async Task<T> GetCsObject<T>(string twinId) where T : new()
         {
             var basicTwin = await GetTwin(twinId);
@@ -331,6 +372,10 @@ namespace DigitalTwinsService
             return ConvertFromTwin<T>(basicTwin, outgoingRelationships);
         }
 
+        /// <summary>
+        /// Gets all twin instances matching the DTDL ModelId referenced in the given C# Class' DTModelAttribute. Outgoing
+        /// relationships are included.
+        /// </summary>
         public async Task<IEnumerable<T>> GetAllCsObjects<T>() where T : new()
         {
             var modelAttribute = (DTModelAttribute)typeof(T).GetCustomAttribute(typeof(DTModelAttribute));
@@ -375,6 +420,9 @@ namespace DigitalTwinsService
             return twin;
         }
         
+        /// <summary>
+        /// Converts a basic twin and its outgoing relationships to a given C# Class decorated with DTMOdel/DTModelContent attributes
+        /// </summary>
         public T ConvertFromTwin<T>(BasicDigitalTwin twin, List<BasicRelationship> relationships) where T : new()
         {
             var modelAttribute = typeof(T).GetCustomAttribute(typeof(DTModelAttribute), false) as DTModelAttribute;
